@@ -76,8 +76,8 @@ module MineSweeper
     def bomb_placement
       bombs = []
       while bombs.length < @bomb_count
-        x = rand(@size-1)
-        y = rand(@size-1)
+        x = rand(@size)
+        y = rand(@size)
 
         bombs << [x, y] unless bombs.include?([x, y])
       end
@@ -188,8 +188,8 @@ module MineSweeper
 
 
   class Game
-    def initialize
-      @board = Board.new
+    def initialize(size = 9)
+      @board = Board.new(size)
     end
 
     def play
@@ -219,4 +219,4 @@ module MineSweeper
   end
 end
 
-MineSweeper::Game.new.play
+MineSweeper::Game.new(16).play
