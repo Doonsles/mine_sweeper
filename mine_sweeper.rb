@@ -1,10 +1,15 @@
 module MineSweeper
   class Board
+    SMALL = 9
+    LARGE = 16
 
-    def initialize(size = 9)
+    def initialize(size = SMALL)
       @game_over = false
+      if size != SMALL && size != LARGE
+        size = SMALL
+      end
       @size = size
-      @bomb_count = (size == 9 ? 10 : 40)
+      @bomb_count = (size == SMALL ? 10 : 40)
 
       bombs = bomb_placement
       @grid = []
@@ -39,6 +44,7 @@ module MineSweeper
           print " "
         end
 
+        # vertical axis line number
         puts "#{x+1}"
       end
     end
@@ -188,7 +194,7 @@ module MineSweeper
 
 
   class Game
-    def initialize(size = 9)
+    def initialize(size = Board::SMALL)
       @board = Board.new(size)
     end
 
@@ -219,4 +225,4 @@ module MineSweeper
   end
 end
 
-MineSweeper::Game.new(16).play
+MineSweeper::Game.new.play
