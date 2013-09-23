@@ -4,12 +4,13 @@ module MineSweeper
     def initialize(size = 9)
       @game_over = false
       @size = size
+      @bomb_count = (size == 9 ? 10 : 40)
 
       bombs = bomb_placement
       @grid = []
-      (0..8).each do |x|
+      (0...@size).each do |x|
         row = []
-        (0..8).each do |y|
+        (0...@size).each do |y|
           row << Tile.new(x, y, bomb: bombs.include?([x, y]))
         end
 
@@ -18,9 +19,9 @@ module MineSweeper
     end
 
     def display
-      puts "1 2 3 4 5 6 7 8 9"
-      (0..8).each do |x|
-        (0..8).each do |y|
+      puts "1 2 3 4 5 6 7 8 @size"
+      (0...@size).each do |x|
+        (0...@size).each do |y|
           if @grid[x][y].visible?
             if @grid[x][y].adjacent_bomb_count == 0
               print "_"
@@ -54,16 +55,29 @@ module MineSweeper
     end
 
     def game_over?
-      @game_over
+      @game_over  || won?
+    end
+
+    def won?
+      (0...@size).each do |x|
+        (0...@size).each do |y|
+          if @grid[x][y].bomb? && @grid[x][y].visible?
+            return false
+          elsif !@grid[x][y].bomb? && !@grid[x][y].visible?
+            return false
+          end
+        end
+      end
+      true
     end
 
 
     private
     def bomb_placement
       bombs = []
-      while bombs.length < 10
-        x = rand(8)
-        y = rand(8)
+      while bombs.length < @bomb_count
+        x = rand(@size-1)
+        y = rand(@size-1)
 
         bombs << [x, y] unless bombs.include?([x, y])
       end
@@ -72,14 +86,12 @@ module MineSweeper
     end
 
     def explore(curr_tile)
-      puts "exploring!"
       queue = [curr_tile]
 
       until queue.empty?
         next_tile = queue.shift
-        puts "exploring tile #{next_tile}"
         next_tile.visible = true
-        # legal_tiles = get_legal_tiles(next_tile)
+
         tile_info = adjacent_tile_info(next_tile)
 
         next_tile.adjacent_bomb_count = tile_info[:bomb_count]
@@ -104,7 +116,7 @@ module MineSweeper
                        [1, 0],
                        [-1, 0] ]
 
-      bomb_offsets = [ [-1, -1],
+      diag_offsets = [ [-1, -1],
                        [-1, 1],
                        [1, -1],
                        [1, 1] ]
@@ -114,16 +126,25 @@ module MineSweeper
         new_x = tile.x - x
         new_y = tile.y - y
 
-        if (new_x >= 0 && new_x < 9) && (new_y >= 0 && new_y < 9)
-          tile = @grid[new_x][new_y]
+        if (new_x >= 0 && new_x < @size) && (new_y >= 0 && new_y < @size)
+          ad_tile = @grid[new_x][new_y]
 
-          legal_tiles << tile
-          bomb_count += 1 if tile.bomb?
+          legal_tiles << ad_tile
+          bomb_count += 1 if ad_tile.bomb?
         end
       end
       tile_info[:tiles] = legal_tiles
 
-      bomb_offsets.each { |x, y| bomb_count += 1 if @grid[x][y].bomb? }
+      count_tiles = []
+      diag_offsets.each do |x, y|
+        new_x = tile.x - x
+        new_y = tile.y - y
+        if (new_x >= 0 && new_x < @size) && (new_y >= 0 && new_y < @size)
+          bomb_count += 1 if @grid[new_x][new_y].bomb?
+          count_tiles << @grid[new_x][new_y]
+        end
+      end
+
       tile_info[:bomb_count] = bomb_count
 
       tile_info
@@ -158,7 +179,13 @@ module MineSweeper
     def visible?
       @visible
     end
+
+    def to_s
+      "Tile: (#{x}, #{y}): bomb: #{bomb}"
+    end
   end
+
+
 
   class Game
     def initialize
@@ -174,8 +201,13 @@ module MineSweeper
         @board.display
       end
 
-      #check if won or lost
+      if @board.won?
+        puts "You win!"
+      else
+        puts "Sorry, you lost!"
+      end
     end
+
 
     private
 
