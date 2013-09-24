@@ -1,3 +1,6 @@
+require "yaml"
+
+
 module MineSweeper
   class Board
     SMALL = 9
@@ -89,7 +92,7 @@ module MineSweeper
       (0...@size).each do |x|
         row = []
         (0...@size).each do |y|
-          row << Tile.new(x, y, bomb: bombs.include?([x, y]))
+          row << Tile.new(x, y, :bomb => bombs.include?([x, y]))
         end
 
         grid << row
@@ -216,8 +219,17 @@ module MineSweeper
 
 
   class Game
-    def initialize(size = Board::SMALL)
-      @board = Board.new(size)
+    def initialize(size = nil)
+      if size
+        @board = Board.new(size)
+      else
+        action = get_game_info
+        if action == :load
+          @board = load_game
+        else
+          @board = Board.new(action == :large ? Board::LARGE : Board::SMALL)
+        end
+      end
     end
 
     def play
@@ -225,7 +237,9 @@ module MineSweeper
 
       until @board.game_over?
         action, position = get_user_input
-        if action == "r"
+        if action == "s"
+          save_game
+        elsif action == "r"
           @board.reveal(position)
         else
           @board.flag(position)
@@ -243,15 +257,56 @@ module MineSweeper
 
     private
 
+    def get_game_info
+      puts "Would you like to:"
+      puts " a: start game with #{Board::SMALL} grid"
+      puts " b: start game with #{Board::LARGE} grid"
+      puts " c: load saved game"
+
+      action = gets.chomp
+      if action == "a"
+        :small
+      elsif action == "b"
+        :large
+      elsif action == "c"
+        :load
+      else
+        puts "that doesn't sound right"
+      end
+    end
+
     def get_user_input
-      puts "Reveal (r) or Flag (f) a square?"
-      print "Enter the click you would like to make (format: [rf] x y): "
+      puts "Reveal (r) or Flag (f) a square? Or Save (s) a game?"
+      print "Enter the click you would like to make (format: [rfs] x y): "
       user_input = gets.chomp.split(' ')
 
       action = user_input[0]
+      if action == "s"
+        return [action, nil]
+      end
+
       position = user_input[1..-1].map { |i| i.to_i - 1 }.reverse
 
       [action, position]
+    end
+
+    def save_game
+      board_yaml = @board.to_yaml
+      time = Time.now.strftime("%Y-%m-%d:%H:%M")
+      filename = "games/my_game-#{time}.yaml"
+
+      File.open(filename, "w") do |file|
+        file.puts(board_yaml)
+      end
+
+      puts "Game saved to #{filename}."
+    end
+
+    def load_game
+      puts "Enter filename: "
+      filename = gets.chomp
+
+      YAML::load(File.read(filename))
     end
   end
 end
